@@ -1,0 +1,44 @@
+CONTAINERNAME alma-lamp
+FROM almalinux/8
+
+ADD ./passwd.sh /root/
+RUN /root/passwd.sh
+
+RUN timedatectl set-timezone Asia/Tokyo && hostnamectl set-hostname alma-lamp
+
+RUN yum -y update
+RUN yum -y install wget unzip
+RUN yum -y install openssh-server httpd
+RUN yum -y install mysql-server php-mysqlnd
+
+
+RUN systemctl enable sshd
+RUN systemctl restart sshd
+RUN systemctl start sshd
+
+ADD ./html/index.html /var/www/html/
+RUN yum -y module reset php
+RUN yum -y module enable php:8.0
+RUN yum -y install php
+
+RUN systemctl enable php-fpm && systemctl start php-fpm
+RUN systemctl enable httpd && systemctl start httpd
+RUN systemctl enable mysqld
+RUN systemctl start mysqld
+RUN mysqladmin -u root password 'password'
+RUN wget https://ja.wordpress.org/latest-ja.zip -P /var/www/html/
+RUN unzip /var/www/html/latest-ja.zip -d /var/www/html/
+ADD ./html/info.php /var/www/html/
+RUN mysql -u root -ppassword -e "CREATE DATABASE wordpress;"
+RUN mysql -u root -ppassword wordpress -e "CREATE USER 'hb-user'@'localhost' IDENTIFIED BY 'password';"
+RUN mysql -u root -ppassword wordpress -e "GRANT ALL PRIVILEGES ON wordpress.* TO 'hb-user'@'localhost';"
+RUN mysql -u root -ppassword wordpress -e "FLUSH PRIVILEGES;"
+
+ADD wp-config.php /var/www/html/wordpress/wp-config.php
+
+RUN systemctl restart httpd
+RUN systemctl restart php-fpm
+RUN systemctl restart sshd
+
+#NUMBER 2
+PORT 192.168.219.40 80 80 proxy-lamp2
