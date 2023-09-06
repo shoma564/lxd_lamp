@@ -1,18 +1,20 @@
 ## 目的
 lxdcliを使う事によって、LXD上にLAMPを自動構築してみようと思う
 
+## github
+https://github.com/shoma564/lxd_lamp/tree/main
+
 ## ファイル構成
 - lxdfile
 - html
   - index.html
   - info.php
-- passwd.sh
 - wp-config.php
 
 ## ファイル
 
 ### lxdfile
-```lxdfile
+```dockerfile
 CONTAINERNAME alma-lamp
 FROM almalinux/8
 
@@ -26,6 +28,8 @@ RUN yum -y install wget unzip
 RUN yum -y install openssh-server httpd
 RUN yum -y install mysql-server php-mysqlnd
 
+RUN echo -e "root:password" | chpasswd
+RUN echo -e 'PermitRootLogin  yes' >> /etc/ssh/sshd_config
 
 RUN systemctl enable sshd
 RUN systemctl restart sshd
@@ -44,7 +48,7 @@ RUN mysqladmin -u root password 'password'
 RUN wget https://ja.wordpress.org/latest-ja.zip -P /var/www/html/
 RUN unzip /var/www/html/latest-ja.zip -d /var/www/html/
 ADD ./html/info.php /var/www/html/
-RUN mysql -u root -ppassword -e "CREATE DATABASE wordpress;"
+RUN mysql -u root -ppassword -e 'CREATE DATABASE wordpress;'
 RUN mysql -u root -ppassword wordpress -e "CREATE USER 'hb-user'@'localhost' IDENTIFIED BY 'password';"
 RUN mysql -u root -ppassword wordpress -e "GRANT ALL PRIVILEGES ON wordpress.* TO 'hb-user'@'localhost';"
 RUN mysql -u root -ppassword wordpress -e "FLUSH PRIVILEGES;"
@@ -55,7 +59,7 @@ RUN systemctl restart httpd
 RUN systemctl restart php-fpm
 RUN systemctl restart sshd
 
-NUMBER 2
+#NUMBER 2
 PORT 192.168.219.40 80 80 proxy-lamp2
 ```
 
@@ -78,14 +82,9 @@ PORT 192.168.219.40 80 80 proxy-lamp2
 <?php phpinfo(); ?>
 ```
 
-## passwd.sh
-```bash
-#!/bin/bash
-echo -e "root:password" | chpasswd
-```
 
 ## wp-config.php
-```bash
+```php
 <?php
 /**
  * The base configuration for WordPress
